@@ -30,6 +30,7 @@ fun SearchBoxComponent(
 		value = searchTerm.value,
 		onValueChange = { searchTerm.value = it; onSearchTermChange(it.text) },
 		shape = RectangleShape,
+		singleLine = true,
 		placeholder = { Text(text = "Search...") },
 		modifier = Modifier.fillMaxWidth(),
 		colors = searchBoxColors(),

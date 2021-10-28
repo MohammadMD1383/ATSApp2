@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 // @formatter:off
 @Entity
 data class Contact(
-	@PrimaryKey(autoGenerate = true) val id     : Long,
+	@PrimaryKey(autoGenerate = true) val id     : Long?,
 	@ColumnInfo                      val name   : String,
 	@ColumnInfo                      val family : String?,
 	@ColumnInfo                      val number : String,
