@@ -14,9 +14,9 @@ interface ContactDao {
 	@Update
 	fun updateContact(contact: Contact)
 	
-	@Query("DELETE FROM contact WHERE id=:id")
+	@Query("DELETE FROM Contact WHERE id=:id")
 	fun removeContact(id: Long)
 	
-	@Query("SELECT * FROM contact")
+	@Query("SELECT * FROM Contact")
 	fun getAllContacts(): List<Contact>
 }

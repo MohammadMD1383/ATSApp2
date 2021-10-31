@@ -1,9 +1,6 @@
 package ir.ats.atsapp2.fragments
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
@@ -17,52 +14,65 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.fragment.app.Fragment
+import ir.ats.atsapp2.components.AlertDialog
 import ir.ats.atsapp2.components.TextBoxComponent
 import ir.ats.atsapp2.components.textTransformation.PhoneNumberMask
 import ir.ats.atsapp2.data.ATSApp2Database
 import ir.ats.atsapp2.data.entities.Contact
 import ir.ats.atsapp2.ui.theme.RoundedShapes
 
-class ContactManagementFragment(private val onFinished: () -> Unit) : Fragment() {
-	override fun onCreateView(
-		inflater: LayoutInflater,
-		container: ViewGroup?,
-		savedInstanceState: Bundle?
-	): View {
-		return ComposeView(requireContext()).apply {
-			setContent {
-				MaterialTheme {
-					MainComponent(onFinished)
-				}
-			}
-		}
-	}
+enum class ContactManagementRole(val title: String) {
+	Add("Add Contact"),
+	Edit("Edit Contact")
 }
 
 @Composable
-private fun MainComponent(onFinished: () -> Unit) {
+fun ContactManagementFragment(
+	role: ContactManagementRole,
+	contact: Contact? = null,
+	onFinished: () -> Unit
+) {
 	val contactName = remember { mutableStateOf(TextFieldValue()) }
 	val contactFamily = remember { mutableStateOf(TextFieldValue()) }
 	val contactNumber = remember { mutableStateOf(TextFieldValue()) }
 	val contactEmail = remember { mutableStateOf(TextFieldValue()) }
 	val scrollState = rememberScrollState()
+	var dialogVisible by remember { mutableStateOf(false) }
 	
-	Column(modifier = Modifier.scrollable(scrollState, Orientation.Vertical)) {
+	if (role == ContactManagementRole.Edit) {
+		contact!!
+		contactName.value = TextFieldValue(contact.name)
+		contact.family?.let { contactFamily.value = TextFieldValue(it) }
+		contactNumber.value = TextFieldValue(contact.number)
+		contact.email?.let { contactEmail.value = TextFieldValue(it) }
+	}
+	
+	AlertDialog(
+		visible = dialogVisible,
+		onDismiss = { dialogVisible = false }
+	) {
+		Text(
+			text = "Please fill out all required fields",
+			softWrap = true,
+		)
+	}
+	
+	Column(
+		modifier = Modifier
+			.scrollable(scrollState, Orientation.Vertical)
+			.fillMaxSize()
+			.background(MaterialTheme.colors.background)
+	) {
 		Row(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -80,7 +90,7 @@ private fun MainComponent(onFinished: () -> Unit) {
 			}
 			
 			Text(
-				text = "Add Contact",
+				text = role.title,
 				fontSize = 18.sp,
 				fontWeight = FontWeight.Bold,
 			)
@@ -90,21 +100,29 @@ private fun MainComponent(onFinished: () -> Unit) {
 					.shadow(4.dp, RoundedShapes.Small)
 					.background(MaterialTheme.colors.background),
 				onClick = {
-					val isValid = validateInputs(contactName, contactNumber)
-					if (isValid) {
-						ATSApp2Database.Instance.contactDao().addContact(
-							Contact(
-								id = null,
-								name = contactName.value.text,
-								family = contactFamily.value.text,
-								number = contactNumber.value.text,
-								email = contactEmail.value.text
-							)
+					if (validateInputs(contactName, contactNumber)) {
+						val contactId =
+							if (role == ContactManagementRole.Edit) contact!!.id
+							else null
+						
+						val newContact = Contact(
+							id = contactId,
+							name = contactName.value.text,
+							family = contactFamily.value.text,
+							number = contactNumber.value.text,
+							email = contactEmail.value.text
 						)
+						
+						val contactDao = ATSApp2Database.Instance.contactDao()
+						
+						if (role == ContactManagementRole.Add)
+							contactDao.addContact(newContact)
+						else
+							contactDao.updateContact(newContact)
 						
 						onFinished()
 					} else {
-						/* Dialog */
+						dialogVisible = true
 					}
 				}
 			) {
@@ -158,10 +176,11 @@ private fun validateInputs(
 	return !(contactName.value.text.trim().isEmpty() || contactNumber.value.text.trim().isEmpty())
 }
 
+@ExperimentalAnimationApi
 @Preview(showBackground = true)
 @Composable
 private fun ComponentPreview() {
 	MaterialTheme {
-		MainComponent { }
+		ContactManagementFragment(ContactManagementRole.Add) {}
 	}
 }

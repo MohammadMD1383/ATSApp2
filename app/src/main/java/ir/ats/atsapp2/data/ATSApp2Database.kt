@@ -19,7 +19,7 @@ abstract class ATSApp2Database : RoomDatabase() {
 				context,
 				ATSApp2Database::class.java,
 				"ats_app2.db"
-			).build()
+			).allowMainThreadQueries().build()
 		}
 	}
 	
